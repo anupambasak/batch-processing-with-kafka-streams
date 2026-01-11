@@ -3,54 +3,32 @@ spring:
     name: client
   cloud:
     stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+          autoCreateTopics: true
+          producer:
+            configuration:
+              key.serializer: org.apache.kafka.common.serialization.StringSerializer
       bindings:
-        recordUpdator-in-0:
-          destination: messageTopic
-          group: record-processor-group
-          binder: kstream # Explicitly bind to kstream binder
         dataProducer-out-0:
           destination: messageTopic
-          binder: kafka
-      kafka:
-        streams:
-          binder:
+          producer:
+            headerMode: embeddedHeaders
+            contentType: application/json
+            # The type mapping below is crucial for Kafka to correctly deserialize
+            # the messages into the appropriate DTOs.
+            # It tells the Kafka binder to use 'recordType' header to determine the class.
+            # If 'recordType' is 'metadata', it maps to MetadataRecord.
+            # Otherwise, it defaults to DataRecord.
             configuration:
-              default:
-                key:
-                  serde: org.apache.kafka.common.serialization.Serdes$StringSerde
-                value:
-                  serde: org.springframework.kafka.support.serializer.JacksonJsonSerde
               spring:
                 json:
                   value:
                     default:
-                      type: com.anupambasak.model.DataRecord
+                      type: com.anupambasak.dtos.DataRecord
                   header:
                     type:
                       id: recordType
                   type:
-                    mapping: metadata:com.anupambasak.model.MetadataRecord,data:com.anupambasak.model.DataRecord
-      binders:
-        kafka:
-          type: kafka
-          environment:
-            spring:
-              cloud:
-                stream:
-                  kafka:
-                    binder:
-                      brokers: "localhost:9092"
-                      autoCreateTopics: true
-                      producer-properties:
-                        key.serializer: org.apache.kafka.common.serialization.StringSerializer
-        kstream:
-          type: kstream
-          environment:
-            spring:
-              cloud:
-                stream:
-                  kafka:
-                    streams:
-                      binder:
-                        brokers: "localhost:9092"
-                        autoCreateTopics: true
+                    mapping: metadata:com.anupambasak.dtos.MetadataRecord,data:com.anupambasak.dtos.DataRecord
