@@ -1,0 +1,56 @@
+spring:
+  application:
+    name: client
+  cloud:
+    stream:
+      bindings:
+        recordUpdator-in-0:
+          destination: messageTopic
+          group: record-processor-group
+          binder: kstream # Explicitly bind to kstream binder
+        dataProducer-out-0:
+          destination: messageTopic
+          binder: kafka
+      kafka:
+        streams:
+          binder:
+            configuration:
+              default:
+                key:
+                  serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+                value:
+                  serde: org.springframework.kafka.support.serializer.JacksonJsonSerde
+              spring:
+                json:
+                  value:
+                    default:
+                      type: com.anupambasak.model.DataRecord
+                  header:
+                    type:
+                      id: recordType
+                  type:
+                    mapping: metadata:com.anupambasak.model.MetadataRecord,data:com.anupambasak.model.DataRecord
+      binders:
+        kafka:
+          type: kafka
+          environment:
+            spring:
+              cloud:
+                stream:
+                  kafka:
+                    binder:
+                      brokers: "localhost:9092"
+                      autoCreateTopics: true
+                      producer-properties:
+                        key.serializer: org.apache.kafka.common.serialization.StringSerializer
+        kstream:
+          type: kstream
+          environment:
+            spring:
+              cloud:
+                stream:
+                  kafka:
+                    streams:
+                      binder:
+                        brokers: "localhost:9092"
+                        autoCreateTopics: true
