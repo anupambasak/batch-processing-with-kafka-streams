@@ -6,29 +6,21 @@ spring:
       kafka:
         binder:
           brokers: localhost:9092
-          autoCreateTopics: true
-          producer:
-            configuration:
-              key.serializer: org.apache.kafka.common.serialization.StringSerializer
+          replication-factor: 1
+        bindings:
+          dataProducer-out-0:
+            producer:
+              sync: true
+              batch-size: 16384
+              linger-ms: 0
+              buffer-memory: 33554432
+              configuration:
+                batch.size: 16384
+                delivery.timeout.ms: 120000
+                key.serializer: org.apache.kafka.common.serialization.StringSerializer
       bindings:
         dataProducer-out-0:
           destination: messageTopic
           producer:
-            headerMode: embeddedHeaders
+#            header-mode: raw
             contentType: application/json
-            # The type mapping below is crucial for Kafka to correctly deserialize
-            # the messages into the appropriate DTOs.
-            # It tells the Kafka binder to use 'recordType' header to determine the class.
-            # If 'recordType' is 'metadata', it maps to MetadataRecord.
-            # Otherwise, it defaults to DataRecord.
-            configuration:
-              spring:
-                json:
-                  value:
-                    default:
-                      type: com.anupambasak.dtos.DataRecord
-                  header:
-                    type:
-                      id: recordType
-                  type:
-                    mapping: metadata:com.anupambasak.dtos.MetadataRecord,data:com.anupambasak.dtos.DataRecord

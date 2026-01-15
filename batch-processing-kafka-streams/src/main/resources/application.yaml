@@ -14,7 +14,7 @@ spring:
             functions:
               recordUpdater.applicationId: record-updater
             configuration:
-              state.dir: C:\Users\basak\kafka-local-state
+              state.dir: ${USERPROFILE}\kafka-local-state
               default:
                 key:
                   serde: org.apache.kafka.common.serialization.Serdes$StringSerde

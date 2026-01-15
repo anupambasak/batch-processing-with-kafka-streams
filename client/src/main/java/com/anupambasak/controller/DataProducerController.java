@@ -37,6 +37,7 @@ public class DataProducerController {
                         Message<DataRecord> message = MessageBuilder
                                 .withPayload(dataRecord)
                                 .setHeader(KafkaHeaders.KEY, producerId)
+                                .setHeader("type", DataRecord.class.getName())
                                 .build();
                         streamBridge.send(bindingName, message); // Send with producerId as key
                     }
@@ -49,6 +50,7 @@ public class DataProducerController {
                             .withPayload(metadataRecord)
                             .setHeader("recordType", "metadata")
                             .setHeader(KafkaHeaders.KEY, producerId)
+                            .setHeader("type", MetadataRecord.class.getName())
                             .build();
                     streamBridge.send(bindingName, metadataMessage); // Send with producerId as key and header
                     log.info("Finished producing data for producerId: {}", producerId);
