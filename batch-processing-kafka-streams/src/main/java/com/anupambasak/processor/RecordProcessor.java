@@ -1,5 +1,6 @@
 package com.anupambasak.processor;
 
+import com.anupambasak.dtos.BaseRecord;
 import com.anupambasak.dtos.DataRecord;
 import com.anupambasak.dtos.MetadataRecord;
 import lombok.extern.slf4j.Slf4j;
@@ -23,18 +24,14 @@ import java.util.function.Consumer;
 public class RecordProcessor {
 
     @Bean
-    public Consumer<KStream<String, Object>> recordUpdator() {
+    public Consumer<KStream<String, BaseRecord>> recordUpdater() {
         return input -> {
             final Serde<DataRecord> dataRecordSerde = new JacksonJsonSerde<>(DataRecord.class);
             final Serde<List<DataRecord>> listDataRecordSerde = new JacksonJsonSerde<>(new TypeReference<List<DataRecord>>() {});
 
             KStream<String, DataRecord> dataRecordsStream = input
                     .filter((k, v) -> {
-                        if(v instanceof DataRecord){
-                            return true;
-                        }else{
-                            return false;
-                        }
+                        return v instanceof DataRecord;
                     })
                     .mapValues(v -> (DataRecord) v);
 
@@ -43,7 +40,9 @@ public class RecordProcessor {
                     .aggregate(
                             ArrayList::new,
                             (key, value, aggregate) -> {
+                                if(!aggregate.contains(value)){
                                 aggregate.add(value);
+                                }
                                 return aggregate;
                             },
                             Materialized.with(Serdes.String(), listDataRecordSerde)

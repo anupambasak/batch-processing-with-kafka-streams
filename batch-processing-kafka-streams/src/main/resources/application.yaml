@@ -3,20 +3,18 @@ spring:
     name: batch-processing-kafka-streams
   cloud:
     function:
-      definition: recordUpdator
+      definition: recordUpdater
     stream:
       bindings:
-        recordUpdator-in-0:
+        recordUpdater-in-0:
           destination: messageTopic
-          group: record-processor-group
-          binder: kstream
-        dataProducer-out-0:
-          destination: messageTopic
-          binder: kafka
       kafka:
         streams:
           binder:
+            functions:
+              recordUpdater.applicationId: record-updater
             configuration:
+              state.dir: C:\Users\basak\kafka-local-state
               default:
                 key:
                   serde: org.apache.kafka.common.serialization.Serdes$StringSerde
@@ -26,33 +24,16 @@ spring:
                 json:
                   value:
                     default:
-                      type: com.anupambasak.model.DataRecord
+                      type: com.anupambasak.dtos.DataRecord
                   header:
                     type:
                       id: recordType
                   type:
-                    mapping: metadata:com.anupambasak.model.MetadataRecord,data:com.anupambasak.model.DataRecord
-      binders:
-        kafka:
-          type: kafka
-          environment:
-            spring:
-              cloud:
-                stream:
-                  kafka:
-                    binder:
-                      brokers: "localhost:9092"
-                      autoCreateTopics: true
-                      producer-properties:
-                        key.serializer: org.apache.kafka.common.serialization.StringSerializer
-        kstream:
-          type: kstream
-          environment:
-            spring:
-              cloud:
-                stream:
-                  kafka:
-                    streams:
-                      binder:
-                        brokers: "localhost:9092"
-                        autoCreateTopics: true
+                    mapping: metadata:com.anupambasak.dtos.MetadataRecord,data:com.anupambasak.dtos.DataRecord
+            brokers: "localhost:9092"
+
+app:
+  kafka:
+    streams:
+      cleanup-on-start: true
+      cleanup-on-stop: false
