@@ -31,6 +31,7 @@ public class RecordProcessor {
 
             KStream<String, DataRecord> dataRecordsStream = input
                     .filter((k, v) -> {
+                        log.info("v is instance of {}", v.toString());
                         return v instanceof DataRecord;
                     })
                     .mapValues(v -> (DataRecord) v);

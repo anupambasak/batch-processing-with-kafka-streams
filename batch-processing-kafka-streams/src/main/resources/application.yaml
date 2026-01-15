@@ -15,21 +15,14 @@ spring:
               recordUpdater.applicationId: record-updater
             configuration:
               state.dir: ${USERPROFILE}\kafka-local-state
+              spring.json.header.type.id: recordType
+              spring.json.type.mapping: metadata:com.anupambasak.dtos.MetadataRecord,data:com.anupambasak.dtos.DataRecord
+              spring.json.trusted.packages: "com.anupambasak"
               default:
                 key:
                   serde: org.apache.kafka.common.serialization.Serdes$StringSerde
                 value:
                   serde: org.springframework.kafka.support.serializer.JacksonJsonSerde
-              spring:
-                json:
-                  value:
-                    default:
-                      type: com.anupambasak.dtos.DataRecord
-                  header:
-                    type:
-                      id: recordType
-                  type:
-                    mapping: metadata:com.anupambasak.dtos.MetadataRecord,data:com.anupambasak.dtos.DataRecord
             brokers: "localhost:9092"
 
 app:
