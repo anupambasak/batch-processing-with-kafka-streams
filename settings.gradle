@@ -1,3 +1,11 @@
+pluginManagement {
+    repositories {
+        mavenLocal()
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
 rootProject.name = 'batch-processing-with-kafka-streams'
 
 include 'common-dtos'

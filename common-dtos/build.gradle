@@ -1,5 +1,7 @@
 plugins {
     id 'java-library'
+    id 'com.anupambasak.pojo-to-proto' version '0.1.1'
+    id 'com.google.protobuf' version '0.9.6'
     id 'org.springframework.boot' version '4.0.1' apply false
     id 'io.spring.dependency-management' version '1.1.7'
 }
@@ -7,6 +9,10 @@ plugins {
 group = 'com.anupambasak'
 version = '0.0.1-SNAPSHOT'
 description = 'Common DTOs for batch processing with Kafka Streams and State Store'
+
+ext{
+    protobufVersion = "3.25.8"
+}
 
 java {
     toolchain {
@@ -24,16 +30,58 @@ repositories {
     mavenCentral()
 }
 
+pojoToProto {
+    source.from(project.layout.projectDirectory.dir("src/main/java/com/anupambasak/dtos"))
+    destination = layout.buildDirectory.dir("generated/proto")
+    singleFile = false // optional, defaults to false
+    packageName = "com.anupambasak.proto" // optional, defaults to project group
+}
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:${protobufVersion}"
+    }
+}
+
+sourceSets {
+    main {
+        proto {
+            srcDir project.file("$projectDir/build/generated/proto")
+        }
+    }
+}
+
+tasks.named('generateProto').configure {
+    dependsOn(tasks.named('pojoToProto'))
+}
+
+tasks.named('processResources').configure {
+    dependsOn(tasks.named('pojoToProto'))
+}
+
+tasks.named('test').configure {
+    dependsOn(tasks.named('pojoToProto'))
+}
+
+tasks.named('clean').configure {
+    delete(fileTree(layout.projectDirectory.dir("src/main/proto")) {
+        include "**/*.proto"
+    })
+}
+
+
 dependencyManagement {
     imports {
         mavenBom org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
     }
 }
 
-
 dependencies {
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
+    api "com.google.protobuf:protobuf-java:${protobufVersion}"
+    api "com.google.protobuf:protobuf-java-util:${protobufVersion}"
+    api "com.google.api.grpc:proto-google-common-protos:2.63.2"
 }
 
 test {
