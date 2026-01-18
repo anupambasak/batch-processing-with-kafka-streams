@@ -1,32 +1,9 @@
 spring:
   application:
     name: batch-processing-kafka-streams
-  cloud:
-    function:
-      definition: recordUpdater
-    stream:
-      bindings:
-        recordUpdater-in-0:
-          destination: messageTopic
-      kafka:
-        streams:
-          binder:
-            functions:
-              recordUpdater.applicationId: record-updater
-            configuration:
-              state.dir: ${USERPROFILE}\kafka-local-state
-              spring.json.header.type.id: recordType
-              spring.json.type.mapping: metadata:com.anupambasak.dtos.MetadataRecord,data:com.anupambasak.dtos.DataRecord
-              spring.json.trusted.packages: "com.anupambasak"
-              default:
-                key:
-                  serde: org.apache.kafka.common.serialization.Serdes$StringSerde
-                value:
-                  serde: org.springframework.kafka.support.serializer.JacksonJsonSerde
-            brokers: "localhost:9092"
-
-app:
   kafka:
+    bootstrap-servers: localhost:9092
     streams:
-      cleanup-on-start: true
-      cleanup-on-stop: false
+      application-id: data-record-processor
+      state-dir: ${USERPROFILE}\kafka-local-state
+      application.server: ${spring.cloud.client.ip-address}:${server.port}
