@@ -1,26 +1,5 @@
 spring:
   application:
     name: client
-  cloud:
-    stream:
-      kafka:
-        binder:
-          brokers: localhost:9092
-          replication-factor: 1
-        bindings:
-          dataProducer-out-0:
-            producer:
-              sync: true
-              batch-size: 16384
-              linger-ms: 0
-              buffer-memory: 33554432
-              configuration:
-                batch.size: 16384
-                delivery.timeout.ms: 120000
-                key.serializer: org.apache.kafka.common.serialization.StringSerializer
-      bindings:
-        dataProducer-out-0:
-          destination: messageTopic
-          producer:
-#            header-mode: raw
-            contentType: application/json
+  kafka:
+    bootstrap-servers: localhost:9092

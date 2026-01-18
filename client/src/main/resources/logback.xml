@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE configuration>
 <configuration>
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
@@ -31,7 +32,7 @@
     <root level="info">
         <appender-ref ref="STDOUT" />
     </root>
-    <shutdownHook class="ch.qos.logback.core.hook.DelayingShutdownHook">
+    <shutdownHook class="ch.qos.logback.core.hook.DefaultShutdownHook">
         <delay>1000</delay>
     </shutdownHook>
 </configuration>
