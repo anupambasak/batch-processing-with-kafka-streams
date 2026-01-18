@@ -46,7 +46,7 @@ protobuf {
 sourceSets {
     main {
         proto {
-            srcDir project.file("$projectDir/build/generated/proto")
+            srcDir "$projectDir/build/generated/proto"
         }
     }
 }
