@@ -45,10 +45,13 @@ public class RecordProcessor {
         // 3. Aggregate DataRecords into a KTable
         KTable<String, List<DataRecord>> dataTable = branches.get("branch-data")
                 .mapValues(v -> (DataRecord) v)
-                .groupBy((k, v) -> v.getProducerId(), Grouped.with(Serdes.String(), dataRecordSerde))
+//                .groupBy((k, v) -> v.getProducerId(), Grouped.with(Serdes.String(), dataRecordSerde))
+                .groupByKey()
                 .aggregate(
                         ArrayList::new,
                         (key, value, aggregate) -> {
+                            log.info("key: {}, value: {}", key, value);
+                            log.info("aggregate contains: {}", aggregate.contains(value));
                             if(!aggregate.contains(value)) {
                                 aggregate.add(value);
                             }

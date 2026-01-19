@@ -45,8 +45,9 @@ public class AppConfig {
         config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JacksonJsonSerializer.class);
         config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaProperties.getBootstrapServers());
-        ProducerFactory<String, BaseRecord> producerFactory = new DefaultKafkaProducerFactory<>(config);
-        return producerFactory;
+        config.put(JacksonJsonSerializer.ADD_TYPE_INFO_HEADERS, true);
+
+        return new DefaultKafkaProducerFactory<>(config);
     }
 
     @Bean("jsonMessageKafkaTemplate")

@@ -6,4 +6,8 @@ spring:
     streams:
       application-id: data-record-processor
       state-dir: ${USERPROFILE}\kafka-local-state
-      application.server: ${spring.cloud.client.ip-address}:${server.port}
+      properties:
+        application.server: localhost:${server.port}
+
+server:
+  port: 7071

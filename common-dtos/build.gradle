@@ -80,6 +80,7 @@ dependencyManagement {
 dependencies {
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
+    api 'org.springframework.boot:spring-boot-starter-jackson'
     api "com.google.protobuf:protobuf-java:${protobufVersion}"
     api "com.google.protobuf:protobuf-java-util:${protobufVersion}"
     api "com.google.api.grpc:proto-google-common-protos:2.63.2"
