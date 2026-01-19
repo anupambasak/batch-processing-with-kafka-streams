@@ -25,9 +25,9 @@ public class SerdeConfig {
     public JsonMapper jsonMapper() {
         // 1. Create the Validator
         PolymorphicTypeValidator ptv = BasicPolymorphicTypeValidator.builder()
-                .allowIfBaseType(BaseRecord.class) // Safety: only allow specific base types
                 .allowIfBaseType(java.util.List.class)
-                .allowIfSubType("com.anupambasak.*")
+                .allowIfSubType("com.anupambasak.dtos.")
+                .allowIfBaseType(BaseRecord.class) // Safety: only allow specific base types
                 .build();
 
         // 2. Use the Builder to create an immutable Mapper
