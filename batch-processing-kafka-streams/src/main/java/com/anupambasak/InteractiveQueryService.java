@@ -24,7 +24,7 @@ public class InteractiveQueryService {
         this.restTemplate = new RestTemplate();
     }
 
-    public List<DataRecord> getDistributedData(String producerId) {
+    public List<?> getDistributedData(String producerId) {
         String storeName = "data-store";
 
         // 1. Find which host has the data for this specific producerId
@@ -34,8 +34,10 @@ public class InteractiveQueryService {
         log.info("{}", hostInfo);
 
         // 2. Check if the host is "this" instance
+        log.info("{}",iqService.getCurrentKafkaStreamsApplicationHostInfo());
         if (iqService.getCurrentKafkaStreamsApplicationHostInfo().equals(hostInfo)) {
             // Query local state store
+            log.info("Reading from local store");
             ReadOnlyKeyValueStore<String, List<DataRecord>> store = iqService.retrieveQueryableStore(
                     storeName, QueryableStoreTypes.keyValueStore());
             return store.get(producerId);
@@ -43,6 +45,7 @@ public class InteractiveQueryService {
             // 3. Remote call: Forward the request to the correct instance
             String remoteUrl = String.format("http://%s:%d/records/%s",
                     hostInfo.host(), hostInfo.port(), producerId);
+            log.info("Reading from remote store: {}", remoteUrl);
             return restTemplate.getForObject(remoteUrl, List.class);
         }
     }

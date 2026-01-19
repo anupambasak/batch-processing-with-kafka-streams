@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   akhq:
     image: tchiotludo/akhq:0.26.0
