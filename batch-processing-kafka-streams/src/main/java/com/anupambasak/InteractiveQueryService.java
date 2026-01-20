@@ -24,7 +24,7 @@ public class InteractiveQueryService {
         this.restTemplate = new RestTemplate();
     }
 
-    public List<?> getDistributedData(String producerId) {
+    public List<DataRecord> getDistributedData(String producerId) {
         String storeName = "data-store";
 
         // 1. Find which host has the data for this specific producerId
@@ -43,7 +43,7 @@ public class InteractiveQueryService {
             return store.get(producerId);
         } else {
             // 3. Remote call: Forward the request to the correct instance
-            String remoteUrl = String.format("http://%s:%d/records/%s",
+            String remoteUrl = String.format("http://%s:%d/data/%s",
                     hostInfo.host(), hostInfo.port(), producerId);
             log.info("Reading from remote store: {}", remoteUrl);
             return restTemplate.getForObject(remoteUrl, List.class);

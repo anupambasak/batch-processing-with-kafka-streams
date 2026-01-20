@@ -13,7 +13,9 @@ import org.apache.kafka.streams.state.KeyValueStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 @Configuration
 @Slf4j
@@ -62,21 +64,21 @@ public class RecordProcessor {
                 );
 
         // 4. Join MetadataRecord stream with the KTable
-        return branches.get("branch-metadata")
-                .mapValues(v -> (MetadataRecord) v)
-                .selectKey((k, v) -> v.getProducerId())
-                .join(dataTable,
-                        (metadata, dataList) -> {
-                            if (dataList.size() == metadata.getTotalRecords()) {
-                                log.info("Complete batch received for producerId: {}. Found {} records. Can proceed with processing.",
-                                        metadata.getProducerId(), dataList.size());
-                            } else {
-                                log.warn("Record count mismatch for producerId: {}. Expected: {}, Found: {}",
-                                        metadata.getProducerId(), metadata.getTotalRecords(), dataList.size());
-                            }
-                            return metadata;
-                        },
-                        Joined.with(Serdes.String(), metadataRecordSerde, dataRecordListSerde)
-                );
+        KStream<String, MetadataRecord> metadataStream = branches.get("branch-metadata")
+                .mapValues(v -> (MetadataRecord) v);
+
+        return metadataStream.join(dataTable,
+                (metadata, dataList) -> {
+                    if (dataList.size() == metadata.getTotalRecords()) {
+                        log.info("Complete batch received for producerId: {}. Found {} records. Can proceed with processing.",
+                                metadata.getProducerId(), dataList.size());
+                    } else {
+                        log.warn("Record count mismatch for producerId: {}. Expected: {}, Found: {}",
+                                metadata.getProducerId(), metadata.getTotalRecords(), dataList.size());
+                    }
+                    return metadata;
+                },
+                Joined.with(Serdes.String(), metadataRecordSerde, dataRecordListSerde)
+        );
     }
 }
