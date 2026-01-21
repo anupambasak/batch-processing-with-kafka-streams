@@ -23,6 +23,8 @@ import java.util.Map;
 @Slf4j
 public class RecordProcessor {
 
+    private static final String DATA_STORE = "data-store";
+
     @Autowired
     private Serde<BaseRecord> baseRecordSerde;
 
@@ -61,9 +63,10 @@ public class RecordProcessor {
                             }
                             return aggregate;
                         },
-                        Materialized.<String, List<DataRecord>, KeyValueStore<Bytes, byte[]>>as("data-store")
+                        Materialized.<String, List<DataRecord>, KeyValueStore<Bytes, byte[]>>as(DATA_STORE)
                                 .withKeySerde(Serdes.String())
                                 .withValueSerde(dataRecordListSerde)
+                                .withRetention(Duration.ofSeconds(120))
                 );
 
         // 4. Join MetadataRecord stream with the aggregated data
