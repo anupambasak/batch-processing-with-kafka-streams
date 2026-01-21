@@ -54,6 +54,8 @@ public class MetadataDrivenApiProcessor implements Processor<String, MetadataRec
 
                     // 🚀 External API call
                     callExternalApi(producerId, records);
+                    // Clean up the store so we don't process this session again on a metadata retry
+                    store.remove(entry.key);
 
                 } else {
                     log.warn("❌ Incomplete batch for producerId={} | expected={} actual={}", producerId, expected, actual);
