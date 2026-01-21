@@ -1,6 +1,7 @@
 package com.anupambasak.spring.config;
 
 import com.anupambasak.dtos.BaseRecord;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -35,6 +36,7 @@ import java.util.Map;
 @Configuration
 @ComponentScan(basePackages = {"com.anupambasak"})
 @EnableKafkaStreams
+@Slf4j
 public class AppConfig {
 
     @Bean
@@ -83,13 +85,14 @@ public class AppConfig {
             }
             properties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationName);
         }
+        properties.put(StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG, CustomRocksDBConfig.class);
         return new KafkaStreamsConfiguration(properties);
     }
 
     @Bean
     public StreamsBuilderFactoryBeanConfigurer configurer() {
         return fb -> fb.setStateListener((newState, oldState) -> {
-            System.out.println("State transition from " + oldState + " to " + newState);
+            log.info("State transition from " + oldState + " to " + newState);
         });
     }
 

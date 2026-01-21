@@ -9,7 +9,7 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.*;
-import org.apache.kafka.streams.state.SessionStore;
+import org.apache.kafka.streams.state.KeyValueStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -49,55 +49,39 @@ public class RecordProcessor {
                 .branch((k, v) -> v instanceof MetadataRecord, Branched.as("metadata"))
                 .noDefaultBranch();
 
-        // 3. Aggregate DataRecords using SessionWindows
-        KTable<Windowed<String>, List<DataRecord>> dataTable = branches.get("branch-data")
+        // 3. Aggregate DataRecords
+        KTable<String, List<DataRecord>> dataTable = branches.get("branch-data")
                 .mapValues(v -> (DataRecord) v)
                 .groupByKey()
-                .windowedBy(SessionWindows.ofInactivityGapAndGrace(Duration.ofSeconds(90), Duration.ofSeconds(10)))
                 .aggregate(
                         ArrayList::new,
                         (key, value, aggregate) -> {
-//                            log.info("key: {}, value: {}", key, value);
-//                            log.info("aggregate contains: {}", aggregate.contains(value));
                             if(!aggregate.contains(value)) {
                                 aggregate.add(value);
                             }
                             return aggregate;
                         },
-                        (aggKey, aggOne, aggTwo) -> {
-                            aggOne.addAll(aggTwo);
-                            return aggOne;
-                        },
-                        Materialized.<String, List<DataRecord>, SessionStore<Bytes, byte[]>>as("data-store")
+                        Materialized.<String, List<DataRecord>, KeyValueStore<Bytes, byte[]>>as("data-store")
                                 .withKeySerde(Serdes.String())
                                 .withValueSerde(dataRecordListSerde)
-                                .withRetention(Duration.ofMinutes(5))
                 );
 
         // 4. Join MetadataRecord stream with the aggregated data
         KStream<String, MetadataRecord> metadataStream = branches.get("branch-metadata")
                 .mapValues(v -> (MetadataRecord) v);
 
-        dataTable.toStream()
-                .selectKey((key, value) -> key.key())
-//                .peek((key, value) -> log.info("Window closed for producerId: {}", key))
-                .join(metadataStream,
-                        (data, metadata) -> {
-                            if (data.size() == metadata.getTotalRecords()) {
+        metadataStream
+                .join(dataTable,
+                        (metadata, data) -> {
+                            if (data != null && data.size() == metadata.getTotalRecords()) {
                                 log.info("Complete batch received for producerId: {}. Found {} records. Can proceed with processing.",
                                         metadata.getProducerId(), data.size());
                             } else {
                                 log.warn("Record count mismatch for producerId: {}. Expected: {}, Found: {}",
-                                        metadata.getProducerId(), metadata.getTotalRecords(), data.size());
+                                        metadata.getProducerId(), metadata.getTotalRecords(), data != null ? data.size() : "null");
                             }
                             return metadata;
-                        },
-                        JoinWindows.ofTimeDifferenceWithNoGrace(Duration.ofMinutes(1)),
-                        StreamJoined.with(
-                                Serdes.String(),
-                                dataRecordListSerde,
-                                metadataRecordSerde
-                        )
+                        }
                 );
 
         return metadataStream;
