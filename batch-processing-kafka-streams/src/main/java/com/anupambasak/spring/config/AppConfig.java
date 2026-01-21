@@ -95,8 +95,6 @@ public class AppConfig {
 
     @Bean
     public KafkaStreamsInteractiveQueryService kafkaStreamsInteractiveQueryService(StreamsBuilderFactoryBean streamsBuilderFactoryBean) {
-        final KafkaStreamsInteractiveQueryService kafkaStreamsInteractiveQueryService =
-                new KafkaStreamsInteractiveQueryService(streamsBuilderFactoryBean);
-        return kafkaStreamsInteractiveQueryService;
+        return new KafkaStreamsInteractiveQueryService(streamsBuilderFactoryBean);
     }
 }

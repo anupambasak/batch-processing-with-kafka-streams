@@ -4,7 +4,7 @@ spring:
   kafka:
     bootstrap-servers: localhost:9092
     streams:
-      application-id: data-record-processor
+      application-id: record-processor
       state-dir: ${USERPROFILE}\kafka-local-state
       properties:
         application.server: localhost:${server.port}
