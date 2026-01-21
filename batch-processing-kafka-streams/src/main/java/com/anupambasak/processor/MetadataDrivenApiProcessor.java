@@ -5,12 +5,14 @@ import com.anupambasak.dtos.MetadataRecord;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.processor.PunctuationType;
 import org.apache.kafka.streams.processor.api.Processor;
 import org.apache.kafka.streams.processor.api.ProcessorContext;
 import org.apache.kafka.streams.processor.api.Record;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.SessionStore;
 
+import java.time.Duration;
 import java.util.List;
 
 @Slf4j
@@ -27,6 +29,21 @@ public class MetadataDrivenApiProcessor implements Processor<String, MetadataRec
     public void init(ProcessorContext<Void, Void> context) {
         Processor.super.init(context);
         this.store = context.getStateStore(storeName);
+
+//        // Schedule a punctuation every 1 minute to check for orphaned data
+//        context.schedule(Duration.ofMinutes(1), PunctuationType.STREAM_TIME, timestamp -> {
+//            try (KeyValueIterator<Windowed<String>, List<DataRecord>> allEntries = store.all()) {
+//                while (allEntries.hasNext()) {
+//                    KeyValue<Windowed<String>, List<DataRecord>> entry = allEntries.next();
+//                    // Logic: If entry is older than a threshold and no metadata arrived,
+//                    // handle as a partial/failed EOS or just purge.
+//                    if (isStale(entry, timestamp)) {
+//                        log.warn("Expiring stale session for key: {}", entry.key.key());
+//                        store.remove(entry.key);
+//                    }
+//                }
+//            }
+//        });
     }
 
     @Override

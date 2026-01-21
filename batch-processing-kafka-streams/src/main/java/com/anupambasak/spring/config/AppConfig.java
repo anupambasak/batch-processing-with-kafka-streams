@@ -85,6 +85,8 @@ public class AppConfig {
             }
             properties.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationName);
         }
+
+        properties.put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, StreamsConfig.EXACTLY_ONCE_V2);
         properties.put(StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG, CustomRocksDBConfig.class);
         return new KafkaStreamsConfiguration(properties);
     }
