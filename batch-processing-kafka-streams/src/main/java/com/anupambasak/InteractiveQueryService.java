@@ -45,6 +45,7 @@ public class InteractiveQueryService {
             ReadOnlySessionStore<String, List<DataRecord>> store = iqService.retrieveQueryableStore(
                     storeName, QueryableStoreTypes.sessionStore());
 
+            long start = System.currentTimeMillis();
             KeyValueIterator<Windowed<String>, List<DataRecord>> iterator = store.fetch(producerId);
             List<DataRecord> latestSession = new ArrayList<>();
             long latestEndTime = -1;
@@ -57,6 +58,8 @@ public class InteractiveQueryService {
                 }
             }
             iterator.close();
+            long end = System.currentTimeMillis();
+            log.info("Time to fetch :{} ms",(end-start));
             return latestSession;
         } else {
             // 3. Remote call: Forward the request to the correct instance

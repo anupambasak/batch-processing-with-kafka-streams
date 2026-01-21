@@ -27,10 +27,13 @@ public class RecordProcessor {
     private Serde<BaseRecord> baseRecordSerde;
 
     @Autowired
-    private Serde<List<DataRecord>> dataRecordListSerde;
+    private Serde<DataRecord> dataRecordSerde;
 
     @Autowired
     private Serde<MetadataRecord> metadataRecordSerde;
+
+    @Autowired
+    private Serde<List<DataRecord>> dataRecordListSerde;
 
 
     @Bean
@@ -54,7 +57,9 @@ public class RecordProcessor {
                 .aggregate(
                         ArrayList::new,
                         (key, value, aggregate) -> {
-                            if (!aggregate.contains(value)) {
+//                            log.info("key: {}, value: {}", key, value);
+//                            log.info("aggregate contains: {}", aggregate.contains(value));
+                            if(!aggregate.contains(value)) {
                                 aggregate.add(value);
                             }
                             return aggregate;
@@ -66,7 +71,7 @@ public class RecordProcessor {
                         Materialized.<String, List<DataRecord>, SessionStore<Bytes, byte[]>>as("data-store")
                                 .withKeySerde(Serdes.String())
                                 .withValueSerde(dataRecordListSerde)
-                                .withRetention(Duration.ofHours(1)) // Set retention for cleanup
+                                .withRetention(Duration.ofMinutes(5))
                 );
 
         // 4. Join MetadataRecord stream with the aggregated data
