@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.streams.state.RocksDBConfigSetter;
 import org.rocksdb.*;
 
+import java.time.Duration;
 import java.util.Map;
 
 @Slf4j
@@ -41,7 +42,7 @@ public class CustomRocksDBConfig implements RocksDBConfigSetter {
 //        options.setLevel0FileNumCompactionTrigger(4);
 
 
-        options.setTtl(120);
+        options.setTtl(Duration.ofHours(1).toSeconds());
 
     }
 
