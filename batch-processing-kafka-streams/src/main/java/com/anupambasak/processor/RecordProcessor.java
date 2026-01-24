@@ -55,7 +55,7 @@ public class RecordProcessor {
         KTable<Windowed<String>, List<DataRecord>> dataTable = branches.get("branch-data")
                 .mapValues(v -> (DataRecord) v)
                 .groupByKey()
-                .windowedBy(SessionWindows.ofInactivityGapAndGrace(Duration.ofMinutes(2), Duration.ofSeconds(30)))
+                .windowedBy(SessionWindows.ofInactivityGapAndGrace(Duration.ofMinutes(1), Duration.ofSeconds(30)))
                 .aggregate(
                         ArrayList::new,
                         (key, value, aggregate) -> {
@@ -71,7 +71,7 @@ public class RecordProcessor {
                         Materialized.<String, List<DataRecord>, SessionStore<Bytes, byte[]>>as(DATA_STORE)
                                 .withKeySerde(Serdes.String())
                                 .withValueSerde(dataRecordListSerde)
-                                .withRetention(Duration.ofMinutes(10))
+                                .withRetention(Duration.ofMinutes(3))
                 )
                 .suppress(Suppressed.untilWindowCloses(Suppressed.BufferConfig.unbounded().withMaxRecords(15000)));
 
@@ -81,6 +81,7 @@ public class RecordProcessor {
                 .join(
                         dataTable.toStream((k, v) -> k.key()),
                         (metadata, data) -> {
+                            log.info("inside ValueJoiner");
                             if (data != null && data.size() == metadata.getTotalRecords()) {
                                 log.info("Complete batch received for producerId: {}. Found {} records. Can proceed with processing.",
                                         metadata.getProducerId(), data.size());
@@ -90,7 +91,8 @@ public class RecordProcessor {
                             }
                             return metadata;
                         },
-                        JoinWindows.ofTimeDifferenceWithNoGrace(Duration.ofMinutes(10))
+                        JoinWindows.ofTimeDifferenceWithNoGrace(Duration.ofSeconds(100)),
+                        StreamJoined.with(Serdes.String(), metadataRecordSerde, dataRecordListSerde)
                 );
     }
 }
