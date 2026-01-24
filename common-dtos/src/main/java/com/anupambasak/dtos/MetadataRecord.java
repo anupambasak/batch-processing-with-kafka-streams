@@ -6,4 +6,5 @@ import lombok.Data;
 public class MetadataRecord implements BaseRecord {
     private String producerId;
     private int totalRecords;
+    private long creationTimestamp;
 }

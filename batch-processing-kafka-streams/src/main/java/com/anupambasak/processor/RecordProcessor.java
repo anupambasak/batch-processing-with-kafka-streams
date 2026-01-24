@@ -24,6 +24,7 @@ import java.util.Map;
 @Slf4j
 public class RecordProcessor {
 
+    private static final String INPUT_TOPIC = "jsonMessageTopic";
     private static final String DATA_STORE = "data-store";
 
     @Autowired
@@ -43,7 +44,7 @@ public class RecordProcessor {
     public KStream<String, BatchRecord> kStream(StreamsBuilder streamsBuilder) {
 
         // 1. Consume from input topic
-        KStream<String, BaseRecord> input = streamsBuilder.stream("jsonMessageTopic",
+        KStream<String, BaseRecord> input = streamsBuilder.stream(INPUT_TOPIC,
                 Consumed.with(Serdes.String(), baseRecordSerde));
 
         // 2. Split into two streams
@@ -65,6 +66,7 @@ public class RecordProcessor {
                         },
                         (key, left, right) -> {
                             left.getDataRecordList().addAll(right.getDataRecordList());
+                            left.setMetadataRecord(right.getMetadataRecord());
                             return left;
                         },
                         Materialized.<String, BatchRecord, SessionStore<Bytes, byte[]>>as(DATA_STORE)
@@ -103,8 +105,9 @@ public class RecordProcessor {
     private void callExternalApi(BatchRecord batchRecord) {
         // REST / gRPC / SOAP / etc
         // This is safe: list is detached from state store
+        final long processingTime = (System.currentTimeMillis() - batchRecord.getMetadataRecord().getCreationTimestamp());
         final String producerId = batchRecord.getMetadataRecord().getProducerId();
         final List<DataRecord> dataRecordList = batchRecord.getDataRecordList();
-        log.info("✅ callExternalApi producerId={} | records={}", producerId, dataRecordList.size());
+        log.info("✅ callExternalApi producerId={} | records={} | timeTaken={}ms", producerId, dataRecordList.size(), processingTime);
     }
 }

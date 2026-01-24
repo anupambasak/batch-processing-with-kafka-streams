@@ -46,6 +46,12 @@ public class AppConfig {
     }
 
     @Bean
+    public NewTopic inputTopicV1() {
+        return TopicBuilder.name("jsonMessageTopicV1")
+                .build();
+    }
+
+    @Bean
     public CleanupConfig cleanupConfig() {
         // cleanupOnStart = true, cleanupOnStop = true
         return new CleanupConfig(true, true);

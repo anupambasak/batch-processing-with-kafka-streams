@@ -19,12 +19,12 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
-//@Configuration
+@Configuration
 @Slf4j
 public class RecordProcessorV1 {
 
-    private static final String INPUT_TOPIC = "jsonMessageTopic";
-    private static final String DATA_STORE = "data-store";
+    private static final String INPUT_TOPIC = "jsonMessageTopicV1";
+    private static final String DATA_STORE = "data-storeV1";
 
     @Autowired
     private Serde<BaseRecord> baseRecordSerde;

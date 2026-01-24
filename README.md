@@ -17,6 +17,7 @@ The `common-dtos` module defines the following data models:
 *   **`BaseRecord`**: An interface that serves as a common parent for `DataRecord` and `MetadataRecord`. It uses Jackson annotations (`@JsonTypeInfo` and `@JsonSubTypes`) to handle polymorphism during JSON serialization and deserialization.
 *   **`DataRecord`**: Represents a data record. It contains a `producerId` to identify the batch and a `payload` which is a string.
 *   **`MetadataRecord`**: Represents the metadata for a batch. It contains the `producerId` and the `totalRecords` count for that batch.
+*   **`BatchRecord`**: A composite record used internally by the Kafka Streams application. It holds a list of `DataRecord`s and a `MetadataRecord` once a batch is deemed complete.
 
 ## How it Works
 
@@ -27,14 +28,14 @@ The process is as follows:
 2.  **Data Consumption & Processing**: The `batch-processing-kafka-streams` application's `RecordProcessor` defines the Kafka Streams topology.
     *   It consumes the `jsonMessageTopic` as a `KStream<String, BaseRecord>`.
     *   The stream is split into two branches based on the record type (`DataRecord` or `MetadataRecord`).
-    *   The `DataRecord` stream is grouped by key (`producerId`) and aggregated into a `KTable<Windowed<String>, List<DataRecord>>` using **Session Windows**. This `KTable` is materialized into a `SessionStore` (which is a type of `WindowStore`) with a defined retention period, ensuring automatic cleanup of old sessions.
-    *   The `KTable` is converted back to a `KStream` (where each record represents a closed or updated session window) and its key is remapped to `String`.
-    *   This stream is then joined with the `metadataStream` using a **stream-stream join** with a `JoinWindows`.
+    *   The `DataRecord` stream is grouped by key (`producerId`) and aggregated into a `KTable<Windowed<String>, BatchRecord>` using **Session Windows** with a 20-second inactivity gap. A `BatchRecord` object collects the `DataRecord`s.
+    *   A `.suppress()` operator is applied, ensuring that only the final, complete `BatchRecord` for each session window (after the window closes) is emitted downstream. The state store for this table is named `data-store`.
+    *   The final, suppressed `BatchRecord` stream is then joined with the `MetadataRecord` stream.
 
-3.  **Batch Completion**: When a `MetadataRecord` arrives and joins with a closed session window containing the aggregated `DataRecord`s:
-    *   The application checks if the number of aggregated `DataRecord`s in the `KTable` matches the `totalRecords` count from the `MetadataRecord`.
-    *   If the counts match, it signifies a complete batch, and the application logs that it can proceed with processing the collected data.
-    *   If the counts do not match, it logs a warning indicating a mismatch.
+3.  **Batch Completion & External API Call**:
+    *   When a `MetadataRecord` and a final `BatchRecord` (from a closed session window) successfully join, the application checks if the number of aggregated `DataRecord`s within the `BatchRecord` matches the `totalRecords` count from the `MetadataRecord`.
+    *   If the counts match, it signifies a complete and valid batch. The application logs the completion, sets the `MetadataRecord` within the `BatchRecord`, and then proceeds to call a simulated external API (`callExternalApi` method) with the complete batch data.
+    *   If the counts do not match, it logs a warning indicating a mismatch (which, with the `.suppress()` operator, should now typically only happen if there's a genuine data discrepancy, not an intermediate state).
 
 ## Interactive Queries
 

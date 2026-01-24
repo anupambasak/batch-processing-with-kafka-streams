@@ -39,9 +39,11 @@ public class DataProducerController {
                     // Send the MetadataRecord after all DataRecords
                     MetadataRecord metadataRecord = new MetadataRecord();
                     metadataRecord.setProducerId(producerId);
-                    metadataRecord.setTotalRecords(count); // Set total records to 10
+                    metadataRecord.setTotalRecords(count);
+                    long currentTime = System.currentTimeMillis();
+                    metadataRecord.setCreationTimestamp(currentTime);
                     jsonMessageKafkaTemplate.send("jsonMessageTopic",producerId, metadataRecord); // Send with producerId as key and header
-                    log.info("Finished producing data for producerId: {}", producerId);
+                    log.info("Finished producing data for producerId: {} at {}", producerId, currentTime);
                 }).thenReturn(ResponseEntity.ok("Data produced successfully for producer: " + producerId))
                 .doOnError(ex -> log.error("Error producing data for producerId: {}", producerId, ex))
                 .onErrorReturn(ResponseEntity.status(500).body("Error producing data."));
