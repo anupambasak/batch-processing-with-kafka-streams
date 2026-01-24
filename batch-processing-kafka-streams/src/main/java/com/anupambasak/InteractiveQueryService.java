@@ -49,8 +49,8 @@ public class InteractiveQueryService {
         if (iqService.getCurrentKafkaStreamsApplicationHostInfo().equals(hostInfo)) {
             // Query local state store
             log.info("Reading from local store");
-//            return readSessionStoreData(producerId);
-            return readKeyValueStoreData(producerId);
+            return readSessionStoreData(producerId);
+//            return readKeyValueStoreData(producerId);
         } else {
             // 3. Remote call: Forward the request to the correct instance
             String remoteUrl = String.format("http://%s:%d/data/%s",

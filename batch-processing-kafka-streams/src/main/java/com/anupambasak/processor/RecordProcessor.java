@@ -9,7 +9,7 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.*;
-import org.apache.kafka.streams.state.KeyValueStore;
+import org.apache.kafka.streams.state.SessionStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -52,29 +52,34 @@ public class RecordProcessor {
                 .noDefaultBranch();
 
         // 3. Aggregate DataRecords
-        KTable<String, List<DataRecord>> dataTable = branches.get("branch-data")
+        KTable<Windowed<String>, List<DataRecord>> dataTable = branches.get("branch-data")
                 .mapValues(v -> (DataRecord) v)
                 .groupByKey()
+                .windowedBy(SessionWindows.ofInactivityGapAndGrace(Duration.ofMinutes(2), Duration.ofSeconds(30)))
                 .aggregate(
                         ArrayList::new,
                         (key, value, aggregate) -> {
-                            if(!aggregate.contains(value)) {
-                                aggregate.add(value);
-                            }
-                            return aggregate;
+                            List<DataRecord> updated = new ArrayList<>(aggregate);
+                            updated.add(value);
+                            return updated;
                         },
-                        Materialized.<String, List<DataRecord>, KeyValueStore<Bytes, byte[]>>as(DATA_STORE)
+                        (key, left, right) -> {
+                            List<DataRecord> merged = new ArrayList<>(left);
+                            merged.addAll(right);
+                            return merged;
+                        },
+                        Materialized.<String, List<DataRecord>, SessionStore<Bytes, byte[]>>as(DATA_STORE)
                                 .withKeySerde(Serdes.String())
                                 .withValueSerde(dataRecordListSerde)
-                                .withRetention(Duration.ofSeconds(120))
-                );
+                                .withRetention(Duration.ofMinutes(10))
+                )
+                .suppress(Suppressed.untilWindowCloses(Suppressed.BufferConfig.unbounded().withMaxRecords(15000)));
 
         // 4. Join MetadataRecord stream with the aggregated data
-        KStream<String, MetadataRecord> metadataStream = branches.get("branch-metadata")
-                .mapValues(v -> (MetadataRecord) v);
-
-        metadataStream
-                .join(dataTable,
+        return branches.get("branch-metadata")
+                .mapValues(v -> (MetadataRecord) v)
+                .join(
+                        dataTable.toStream((k, v) -> k.key()),
                         (metadata, data) -> {
                             if (data != null && data.size() == metadata.getTotalRecords()) {
                                 log.info("Complete batch received for producerId: {}. Found {} records. Can proceed with processing.",
@@ -84,9 +89,8 @@ public class RecordProcessor {
                                         metadata.getProducerId(), metadata.getTotalRecords(), data != null ? data.size() : "null");
                             }
                             return metadata;
-                        }
+                        },
+                        JoinWindows.ofTimeDifferenceWithNoGrace(Duration.ofMinutes(10))
                 );
-
-        return metadataStream;
     }
 }
