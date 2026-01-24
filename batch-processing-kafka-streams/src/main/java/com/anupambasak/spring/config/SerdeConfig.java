@@ -1,6 +1,7 @@
 package com.anupambasak.spring.config;
 
 import com.anupambasak.dtos.BaseRecord;
+import com.anupambasak.dtos.BatchRecord;
 import com.anupambasak.dtos.DataRecord;
 import com.anupambasak.dtos.MetadataRecord;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -84,6 +85,19 @@ public class SerdeConfig {
         serializer.setAddTypeInfo(true);
 
         JacksonJsonDeserializer<List<DataRecord>> deserializer = new JacksonJsonDeserializer<>(new TypeReference<List<DataRecord>>() {},jsonMapper);
+        deserializer.setUseTypeHeaders(true);
+        deserializer.addTrustedPackages("com.anupambasak.dtos");
+
+        return Serdes.serdeFrom(serializer, deserializer);
+    }
+
+    @Bean
+    public Serde<BatchRecord> batchRecordSerde(JsonMapper  jsonMapper) {
+
+        JacksonJsonSerializer<BatchRecord> serializer = new JacksonJsonSerializer<>(jsonMapper);
+        serializer.setAddTypeInfo(true);
+
+        JacksonJsonDeserializer<BatchRecord> deserializer = new JacksonJsonDeserializer<>(BatchRecord.class,jsonMapper);
         deserializer.setUseTypeHeaders(true);
         deserializer.addTrustedPackages("com.anupambasak.dtos");
 

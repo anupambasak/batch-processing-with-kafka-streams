@@ -14,13 +14,14 @@ import org.apache.kafka.streams.state.SessionStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
 //@Configuration
 @Slf4j
-public class RecordProcessorV2 {
+public class RecordProcessorV1 {
 
     private static final String INPUT_TOPIC = "jsonMessageTopic";
     private static final String DATA_STORE = "data-store";

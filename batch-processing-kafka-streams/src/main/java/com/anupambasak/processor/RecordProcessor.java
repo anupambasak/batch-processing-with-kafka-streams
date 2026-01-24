@@ -1,6 +1,7 @@
 package com.anupambasak.processor;
 
 import com.anupambasak.dtos.BaseRecord;
+import com.anupambasak.dtos.BatchRecord;
 import com.anupambasak.dtos.DataRecord;
 import com.anupambasak.dtos.MetadataRecord;
 import lombok.extern.slf4j.Slf4j;
@@ -35,11 +36,11 @@ public class RecordProcessor {
     private Serde<MetadataRecord> metadataRecordSerde;
 
     @Autowired
-    private Serde<List<DataRecord>> dataRecordListSerde;
+    private Serde<BatchRecord> batchRecordSerde;
 
 
     @Bean
-    public KStream<String, MetadataRecord> kStream(StreamsBuilder streamsBuilder) {
+    public KStream<String, BatchRecord> kStream(StreamsBuilder streamsBuilder) {
 
         // 1. Consume from input topic
         KStream<String, BaseRecord> input = streamsBuilder.stream("jsonMessageTopic",
@@ -51,48 +52,59 @@ public class RecordProcessor {
                 .branch((k, v) -> v instanceof MetadataRecord, Branched.as("metadata"))
                 .noDefaultBranch();
 
-        // 3. Aggregate DataRecords
-        KTable<Windowed<String>, List<DataRecord>> dataTable = branches.get("branch-data")
+        // 3. Aggregate DataRecords into session windows to isolate batches
+        KTable<Windowed<String>, BatchRecord> dataTable = branches.get("branch-data")
                 .mapValues(v -> (DataRecord) v)
                 .groupByKey()
-                .windowedBy(SessionWindows.ofInactivityGapAndGrace(Duration.ofMinutes(1), Duration.ofSeconds(30)))
+                .windowedBy(SessionWindows.ofInactivityGapWithNoGrace(Duration.ofSeconds(20)))
                 .aggregate(
-                        ArrayList::new,
+                        () -> new BatchRecord(new ArrayList<>(),null),
                         (key, value, aggregate) -> {
-                            List<DataRecord> updated = new ArrayList<>(aggregate);
-                            updated.add(value);
-                            return updated;
+                            aggregate.getDataRecordList().add(value);
+                            return aggregate;
                         },
                         (key, left, right) -> {
-                            List<DataRecord> merged = new ArrayList<>(left);
-                            merged.addAll(right);
-                            return merged;
+                            left.getDataRecordList().addAll(right.getDataRecordList());
+                            return left;
                         },
-                        Materialized.<String, List<DataRecord>, SessionStore<Bytes, byte[]>>as(DATA_STORE)
+                        Materialized.<String, BatchRecord, SessionStore<Bytes, byte[]>>as(DATA_STORE)
                                 .withKeySerde(Serdes.String())
-                                .withValueSerde(dataRecordListSerde)
+                                .withValueSerde(batchRecordSerde)
                                 .withRetention(Duration.ofMinutes(3))
-                )
-                .suppress(Suppressed.untilWindowCloses(Suppressed.BufferConfig.unbounded().withMaxRecords(15000)));
-
-        // 4. Join MetadataRecord stream with the aggregated data
-        return branches.get("branch-metadata")
-                .mapValues(v -> (MetadataRecord) v)
-                .join(
-                        dataTable.toStream((k, v) -> k.key()),
-                        (metadata, data) -> {
-                            log.info("inside ValueJoiner");
-                            if (data != null && data.size() == metadata.getTotalRecords()) {
-                                log.info("Complete batch received for producerId: {}. Found {} records. Can proceed with processing.",
-                                        metadata.getProducerId(), data.size());
-                            } else {
-                                log.warn("Record count mismatch for producerId: {}. Expected: {}, Found: {}",
-                                        metadata.getProducerId(), metadata.getTotalRecords(), data != null ? data.size() : "null");
-                            }
-                            return metadata;
-                        },
-                        JoinWindows.ofTimeDifferenceWithNoGrace(Duration.ofSeconds(100)),
-                        StreamJoined.with(Serdes.String(), metadataRecordSerde, dataRecordListSerde)
                 );
+
+        KStream<String, MetadataRecord> metadataStream = branches.get("branch-metadata")
+                .mapValues(v -> (MetadataRecord) v)
+                .filter((k, v) -> k != null && v != null);;
+
+        KStream<String, BatchRecord> dataTableSeream = dataTable.toStream()
+                .selectKey((k, v) -> k.key())
+                .filter((k, v) -> k != null && v != null);
+
+        // 4. Join the aggregated data's changelog stream with MetadataRecord stream
+        return metadataStream
+                .join(
+                        dataTableSeream,
+                        (metadata, data) -> {
+                            if (data != null && data.getDataRecordList().size() == metadata.getTotalRecords()) {
+                                log.info("✅ Complete batch for producerId={} | records={}",
+                                        metadata.getProducerId(), data.getDataRecordList().size());
+                                data.setMetadataRecord(metadata);
+                                // 🚀 External API call
+                                callExternalApi(data);
+                            }
+                            return data;
+                        },
+                        JoinWindows.ofTimeDifferenceWithNoGrace(Duration.ofSeconds(50)),
+                        StreamJoined.with(Serdes.String(), metadataRecordSerde, batchRecordSerde)
+                );
+    }
+
+    private void callExternalApi(BatchRecord batchRecord) {
+        // REST / gRPC / SOAP / etc
+        // This is safe: list is detached from state store
+        final String producerId = batchRecord.getMetadataRecord().getProducerId();
+        final List<DataRecord> dataRecordList = batchRecord.getDataRecordList();
+        log.info("✅ callExternalApi producerId={} | records={}", producerId, dataRecordList.size());
     }
 }
