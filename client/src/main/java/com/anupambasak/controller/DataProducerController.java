@@ -21,31 +21,39 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class DataProducerController {
 
+    //    private static final String INPUT_TOPIC = "jsonMessageTopicV1";
+    private static final String INPUT_TOPIC = "jsonMessageTopic";
+
     @Autowired
     KafkaTemplate<String, BaseRecord> jsonMessageKafkaTemplate;
 
     @GetMapping("/produce/{producerId}/{count}")
     public Mono<ResponseEntity<String>> produceData(@PathVariable String producerId, @PathVariable int count) {
         return Mono.fromRunnable(() -> {
-                    log.info("Producing data for producerId: {}", producerId);
-                    // Send 10 DataRecords as per original requirement
-                    for (int i = 0; i < count; i++) {
-                        DataRecord dataRecord = new DataRecord();
-                        dataRecord.setProducerId(producerId);
-                        dataRecord.setPayload("Data " + i);
-                        jsonMessageKafkaTemplate.send("jsonMessageTopic",producerId, dataRecord);
-                    }
-
-                    // Send the MetadataRecord after all DataRecords
-                    MetadataRecord metadataRecord = new MetadataRecord();
-                    metadataRecord.setProducerId(producerId);
-                    metadataRecord.setTotalRecords(count);
-                    long currentTime = System.currentTimeMillis();
-                    metadataRecord.setCreationTimestamp(currentTime);
-                    jsonMessageKafkaTemplate.send("jsonMessageTopic",producerId, metadataRecord); // Send with producerId as key and header
-                    log.info("Finished producing data for producerId: {} at {}", producerId, currentTime);
+                    sendData(producerId, count);
+                    sendMetaData(producerId, count);
                 }).thenReturn(ResponseEntity.ok("Data produced successfully for producer: " + producerId))
                 .doOnError(ex -> log.error("Error producing data for producerId: {}", producerId, ex))
                 .onErrorReturn(ResponseEntity.status(500).body("Error producing data."));
+    }
+
+    private void sendData(String producerId, int count) {
+        log.info("Producing data for producerId: {}", producerId);
+        for (int i = 0; i < count; i++) {
+            DataRecord dataRecord = new DataRecord();
+            dataRecord.setProducerId(producerId);
+            dataRecord.setPayload("Data " + i);
+            jsonMessageKafkaTemplate.send(INPUT_TOPIC, producerId, dataRecord);
+        }
+    }
+
+    private void sendMetaData(String producerId, int count) {
+        MetadataRecord metadataRecord = new MetadataRecord();
+        metadataRecord.setProducerId(producerId);
+        metadataRecord.setTotalRecords(count);
+        long currentTime = System.currentTimeMillis();
+        metadataRecord.setCreationTimestamp(currentTime);
+        jsonMessageKafkaTemplate.send(INPUT_TOPIC, producerId, metadataRecord); // Send with producerId as key and header
+        log.info("Producing metadata for producerId: {} at {}", producerId, currentTime);
     }
 }

@@ -1,5 +1,6 @@
 package com.anupambasak.processor;
 
+import com.anupambasak.dtos.BatchRecord;
 import com.anupambasak.dtos.DataRecord;
 import com.anupambasak.dtos.MetadataRecord;
 import lombok.extern.slf4j.Slf4j;
@@ -12,14 +13,13 @@ import org.apache.kafka.streams.processor.api.Record;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.SessionStore;
 
-import java.time.Duration;
 import java.util.List;
 
 @Slf4j
 public class MetadataDrivenApiProcessor implements Processor<String, MetadataRecord, Void, Void> {
 
     private final String storeName;
-    private SessionStore<String, List<DataRecord>> store;
+    private SessionStore<String, BatchRecord> store;
 
     public MetadataDrivenApiProcessor(String storeName) {
         this.storeName = storeName;
@@ -52,7 +52,7 @@ public class MetadataDrivenApiProcessor implements Processor<String, MetadataRec
         String producerId = record.key();
         MetadataRecord metadata = record.value();
 
-        try (KeyValueIterator<Windowed<String>, List<DataRecord>> iterator = store.fetch(producerId)) {
+        try (KeyValueIterator<Windowed<String>, BatchRecord> iterator = store.fetch(producerId)) {
 
             if (!iterator.hasNext()) {
                 log.warn("No data found for producerId {}", producerId);
@@ -60,17 +60,18 @@ public class MetadataDrivenApiProcessor implements Processor<String, MetadataRec
             }
 
             while (iterator.hasNext()) {
-                KeyValue<Windowed<String>, List<DataRecord>> entry = iterator.next();
+                KeyValue<Windowed<String>, BatchRecord> entry = iterator.next();
 
-                List<DataRecord> records = entry.value;
+                BatchRecord records = entry.value;
                 int expected = metadata.getTotalRecords();
-                int actual = records.size();
+                int actual = records.getDataRecordList().size();
 
                 if (actual == expected) {
                     log.info("✅ Complete batch for producerId={} | records={}", producerId, actual);
+                    records.setMetadataRecord(metadata);
 
                     // 🚀 External API call
-                    callExternalApi(producerId, records);
+                    callExternalApi(records);
                     // Clean up the store so we don't process this session again on a metadata retry
                     store.remove(entry.key);
 
@@ -81,10 +82,13 @@ public class MetadataDrivenApiProcessor implements Processor<String, MetadataRec
         }
     }
 
-    private void callExternalApi(String producerId, List<DataRecord> records) {
+    private void callExternalApi(BatchRecord batchRecord) {
         // REST / gRPC / SOAP / etc
         // This is safe: list is detached from state store
-        log.info("callExternalApi producerId={} | records={}", producerId, records.size());
+        final long processingTime = (System.currentTimeMillis() - batchRecord.getMetadataRecord().getCreationTimestamp());
+        final String producerId = batchRecord.getMetadataRecord().getProducerId();
+        final List<DataRecord> dataRecordList = batchRecord.getDataRecordList();
+        log.info("✅ callExternalApi producerId={} | records={} | timeTaken={}ms", producerId, dataRecordList.size(), processingTime);
     }
 
     @Override

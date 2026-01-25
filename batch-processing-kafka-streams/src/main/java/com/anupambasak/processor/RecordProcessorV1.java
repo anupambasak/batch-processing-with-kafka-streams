@@ -1,6 +1,7 @@
 package com.anupambasak.processor;
 
 import com.anupambasak.dtos.BaseRecord;
+import com.anupambasak.dtos.BatchRecord;
 import com.anupambasak.dtos.DataRecord;
 import com.anupambasak.dtos.MetadataRecord;
 import lombok.extern.slf4j.Slf4j;
@@ -17,7 +18,6 @@ import org.springframework.context.annotation.Configuration;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.List;
 
 @Configuration
 @Slf4j
@@ -30,10 +30,7 @@ public class RecordProcessorV1 {
     private Serde<BaseRecord> baseRecordSerde;
 
     @Autowired
-    private Serde<List<DataRecord>> dataRecordListSerde;
-
-    @Autowired
-    private Serde<MetadataRecord> metadataRecordSerde;
+    private Serde<BatchRecord> batchRecordSerde;
 
     @Bean
     public Topology topology(StreamsBuilder builder) {
@@ -49,29 +46,25 @@ public class RecordProcessorV1 {
                 .mapValues(v -> (MetadataRecord) v);
 
         // 3. Aggregate DataRecords using Session Windows
-        KTable<Windowed<String>, List<DataRecord>> dataTable = dataStream
+        KTable<Windowed<String>, BatchRecord> dataTable = dataStream
                 .groupByKey()
-                .windowedBy(SessionWindows.ofInactivityGapAndGrace(Duration.ofMinutes(2), Duration.ofSeconds(30)))
+                .windowedBy(SessionWindows.ofInactivityGapAndGrace(Duration.ofSeconds(20),Duration.ofSeconds(20)))
                 .aggregate(
-                        ArrayList::new,
-                        // ADD record (immutable-style)
+                        () -> new BatchRecord(new ArrayList<>(),null),
                         (key, value, aggregate) -> {
-                            List<DataRecord> updated = new ArrayList<>(aggregate);
-                            updated.add(value);
-                            return updated;
+                            aggregate.getDataRecordList().add(value);
+                            return aggregate;
                         },
-                        // MERGE sessions safely
                         (key, left, right) -> {
-                            List<DataRecord> merged = new ArrayList<>(left);
-                            merged.addAll(right);
-                            return merged;
+                            left.getDataRecordList().addAll(right.getDataRecordList());
+                            left.setMetadataRecord(right.getMetadataRecord());
+                            return left;
                         },
-                        Materialized.<String, List<DataRecord>, SessionStore<Bytes, byte[]>>as(DATA_STORE)
+                        Materialized.<String, BatchRecord, SessionStore<Bytes, byte[]>>as(DATA_STORE)
                                 .withKeySerde(Serdes.String())
-                                .withValueSerde(dataRecordListSerde)
+                                .withValueSerde(batchRecordSerde)
                                 .withRetention(Duration.ofMinutes(10))
-                )
-                .suppress(Suppressed.untilWindowCloses(Suppressed.BufferConfig.unbounded().withMaxRecords(15000)));
+                );
 
         // 4. Trigger external API call when metadata arrives
         metadataStream.process(

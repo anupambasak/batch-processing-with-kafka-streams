@@ -31,9 +31,6 @@ public class RecordProcessor {
     private Serde<BaseRecord> baseRecordSerde;
 
     @Autowired
-    private Serde<DataRecord> dataRecordSerde;
-
-    @Autowired
     private Serde<MetadataRecord> metadataRecordSerde;
 
     @Autowired
@@ -57,7 +54,7 @@ public class RecordProcessor {
         KTable<Windowed<String>, BatchRecord> dataTable = branches.get("branch-data")
                 .mapValues(v -> (DataRecord) v)
                 .groupByKey()
-                .windowedBy(SessionWindows.ofInactivityGapWithNoGrace(Duration.ofSeconds(20)))
+                .windowedBy(SessionWindows.ofInactivityGapAndGrace(Duration.ofMinutes(2),Duration.ofSeconds(10)))
                 .aggregate(
                         () -> new BatchRecord(new ArrayList<>(),null),
                         (key, value, aggregate) -> {
@@ -72,12 +69,12 @@ public class RecordProcessor {
                         Materialized.<String, BatchRecord, SessionStore<Bytes, byte[]>>as(DATA_STORE)
                                 .withKeySerde(Serdes.String())
                                 .withValueSerde(batchRecordSerde)
-                                .withRetention(Duration.ofMinutes(3))
+                                .withRetention(Duration.ofMinutes(10))
                 );
 
         KStream<String, MetadataRecord> metadataStream = branches.get("branch-metadata")
                 .mapValues(v -> (MetadataRecord) v)
-                .filter((k, v) -> k != null && v != null);;
+                .filter((k, v) -> k != null && v != null);
 
         KStream<String, BatchRecord> dataTableSeream = dataTable.toStream()
                 .selectKey((k, v) -> k.key())
@@ -97,7 +94,7 @@ public class RecordProcessor {
                             }
                             return data;
                         },
-                        JoinWindows.ofTimeDifferenceWithNoGrace(Duration.ofSeconds(50)),
+                        JoinWindows.ofTimeDifferenceWithNoGrace(Duration.ofMinutes(4)),
                         StreamJoined.with(Serdes.String(), metadataRecordSerde, batchRecordSerde)
                 );
     }
