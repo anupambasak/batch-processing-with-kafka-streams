@@ -11,7 +11,8 @@ version = '0.0.1-SNAPSHOT'
 description = 'Common DTOs for batch processing with Kafka Streams and State Store'
 
 ext{
-    protobufVersion = "3.25.8"
+//    protobufVersion = "3.25.8"
+    protobufVersion = "4.33.4"
 }
 
 java {

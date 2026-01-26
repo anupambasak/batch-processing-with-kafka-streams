@@ -1,11 +1,9 @@
 package com.anupambasak;
 
-import com.anupambasak.dtos.DataRecord;
+import com.anupambasak.proto.BatchRecord;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
 
 @RestController
 public class StateQueryController {
@@ -17,9 +15,9 @@ public class StateQueryController {
     }
 
     @GetMapping("/data/{producerId}")
-    public List<DataRecord> getRecords(@PathVariable String producerId) {
-        List<DataRecord> data = queryService.getDistributedData(producerId);
-        return data != null ? data : List.of();
+    public BatchRecord getRecords(@PathVariable String producerId) {
+        BatchRecord data = queryService.getDistributedData(producerId);
+        return data != null ? data : BatchRecord.getDefaultInstance();
     }
 }
 

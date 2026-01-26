@@ -1,0 +1,32 @@
+<!DOCTYPE configuration>
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>[%d{dd/MM/yyyy HH:mm:ss.SSS z}] %-5level [%.-30t] [%logger{0}:%L] - %msg%n%rEx</pattern>
+        </encoder>
+    </appender>
+
+<!--    <logger name="org.springframework" level="info"></logger>-->
+<!--    <logger name="org.hibernate" level="info"></logger>-->
+<!--    <logger name="reactor.ipc" level="info"></logger>-->
+<!--    <logger name="org.apache.http" level="info"></logger>-->
+<!--    <logger name="io.netty" level="info"></logger>-->
+<!--    <logger name="reactor.netty" level="info"></logger>-->
+<!--    <logger name="io.reactivex" level="info"></logger>-->
+<!--    <logger name="org.postgresql" level="info"></logger>-->
+<!--    <logger name="com.zaxxer.hikari.pool" level="info"></logger>-->
+<!--    <logger name="kafka.server" level="error"/>-->
+<!--    <logger name="org.apache.kafka" level="error"/>-->
+<!--    <logger name="org.apache.kafka.clients.consumer" level="error"></logger>-->
+<!--    <logger name="org.apache.kafka.clients.producer" level="error"></logger>-->
+<!--    <logger name="org.apache.kafka.clients.admin" level="error"></logger>-->
+<!--    <logger name="org.springframework.kafka.test.junit" level="error"></logger>-->
+<!--    <logger name="org.springframework.cloud.stream.binder" level="error"></logger>-->
+
+    <root level="info">
+        <appender-ref ref="STDOUT" />
+    </root>
+    <shutdownHook class="ch.qos.logback.core.hook.DefaultShutdownHook">
+        <delay>1000</delay>
+    </shutdownHook>
+</configuration>

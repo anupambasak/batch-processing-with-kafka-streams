@@ -12,8 +12,10 @@ import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.*;
 import org.apache.kafka.streams.state.SessionStore;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.annotation.KafkaStreamsDefaultConfiguration;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -38,7 +40,9 @@ public class RecordProcessor {
 
 
     @Bean
-    public KStream<String, BatchRecord> kStream(StreamsBuilder streamsBuilder) {
+    public KStream<String, BatchRecord> kStream(
+            @Qualifier(KafkaStreamsDefaultConfiguration.DEFAULT_STREAMS_BUILDER_BEAN_NAME)
+            StreamsBuilder streamsBuilder) {
 
         // 1. Consume from input topic
         KStream<String, BaseRecord> input = streamsBuilder.stream(INPUT_TOPIC,

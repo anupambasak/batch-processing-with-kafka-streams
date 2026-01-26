@@ -10,4 +10,5 @@ rootProject.name = 'batch-processing-with-kafka-streams'
 
 include 'common-dtos'
 include 'client'
-include 'batch-processing-kafka-streams'
+include 'kafka-streams-json'
+include 'kafka-streams-protobuf'

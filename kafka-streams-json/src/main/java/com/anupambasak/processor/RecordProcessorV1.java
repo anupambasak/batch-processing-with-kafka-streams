@@ -13,8 +13,10 @@ import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.*;
 import org.apache.kafka.streams.state.SessionStore;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.annotation.KafkaStreamsDefaultConfiguration;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -33,7 +35,9 @@ public class RecordProcessorV1 {
     private Serde<BatchRecord> batchRecordSerde;
 
     @Bean
-    public Topology topology(StreamsBuilder builder) {
+    public Topology topology(
+            @Qualifier(KafkaStreamsDefaultConfiguration.DEFAULT_STREAMS_BUILDER_BEAN_NAME)
+            StreamsBuilder builder) {
 
         // 1. Consume input topic
         KStream<String, BaseRecord> input = builder.stream(INPUT_TOPIC, Consumed.with(Serdes.String(), baseRecordSerde));

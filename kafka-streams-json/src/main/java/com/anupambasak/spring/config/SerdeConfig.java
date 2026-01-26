@@ -5,6 +5,7 @@ import com.anupambasak.dtos.BatchRecord;
 import com.anupambasak.dtos.DataRecord;
 import com.anupambasak.dtos.MetadataRecord;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.confluent.kafka.streams.serdes.protobuf.KafkaProtobufSerde;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.springframework.context.annotation.Bean;
