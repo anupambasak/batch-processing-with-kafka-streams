@@ -12,18 +12,39 @@ services:
                 url: "http://schema-registry:8081"
     ports:
       - 8082:8080
-  schema-registry:
-    image: confluentinc/cp-schema-registry:8.0.3
-    hostname: schema-registry
-    container_name: schema-registry
-    depends_on:
-      - kafka
+#  schema-registry:
+#    image: confluentinc/cp-schema-registry:8.0.3
+#    hostname: schema-registry
+#    container_name: schema-registry
+#    depends_on:
+#      - kafka
+#    ports:
+#      - "8081:8081"
+#    environment:
+#      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+#      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'kafka:29092'
+#      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+  apicurio-registry:
+    image: apicurio/apicurio-registry:3.1.7
     ports:
-      - "8081:8081"
+      - "8083:8080"
     environment:
-      SCHEMA_REGISTRY_HOST_NAME: schema-registry
-      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'kafka:29092'
-      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+      apicurio.rest.deletion.group.enabled: "true"
+      apicurio.rest.deletion.artifact.enabled: "true"
+      apicurio.rest.deletion.artifact-version.enabled: "true"
+      apicurio.rest.mutability.artifact-version-content.enabled: "true"
+      QUARKUS_HTTP_CORS_ORIGINS: "*"
+      # In-memory storage is the default, no specific env var needed for this variant
+      # but you can explicitly set it with REGISTRY_STORAGE_TYPE=mem
+      REGISTRY_STORAGE_TYPE: mem
+  apicurio-registry-ui:
+    image: apicurio/apicurio-registry-ui:3.1.7
+    ports:
+      - "8888:8080"
+    environment:
+      REGISTRY_API_URL: http://localhost:8083/apis/registry/v3
+    depends_on:
+      - apicurio-registry
   kafka:
     image: confluentinc/cp-kafka:8.0.3
     container_name: kafka
