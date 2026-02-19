@@ -34,6 +34,12 @@ public class AppConfig {
     }
 
     @Bean
+    public NewTopic protoMessageTopicV2() {
+        return TopicBuilder.name("protoMessageTopicV2")
+                .build();
+    }
+
+    @Bean
     public CleanupConfig cleanupConfig() {
         return new CleanupConfig(true, true);
     }

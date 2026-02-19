@@ -2,6 +2,8 @@ package com.anupambasak.spring.config;
 
 import com.anupambasak.dtos.BaseRecord;
 import com.anupambasak.proto.ProtoBufRecord;
+import io.apicurio.registry.serde.config.SerdeConfig;
+import io.apicurio.registry.serde.protobuf.ProtobufKafkaSerializer;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -41,6 +43,12 @@ public class AppConfig {
                 .build();
     }
 
+    @Bean
+    public NewTopic protoMessageTopicV2() {
+        return TopicBuilder.name("protoMessageTopicV2")
+                .build();
+    }
+
     @Bean("jsonMessageProducerFactory")
     public ProducerFactory<String, BaseRecord> jsonMessageProducerFactory(){
         Map<String, Object> config = new HashMap<>();
@@ -74,4 +82,23 @@ public class AppConfig {
         KafkaTemplate<String, ProtoBufRecord> kafkaTemplate = new KafkaTemplate<>(protoBufMessageProducerFactory);
         return kafkaTemplate;
     }
+
+    @Bean("protoBufMessageProducerFactoryWithApicurio")
+    public ProducerFactory<String, ProtoBufRecord> protoBufMessageProducerFactoryWithApicurio(){
+        Map<String, Object> config = new HashMap<>();
+        config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ProtobufKafkaSerializer.class);
+        config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaProperties.getBootstrapServers());
+        config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, Boolean.TRUE);
+        config.put(SerdeConfig.REGISTRY_URL, "http://localhost:8083");
+        return new DefaultKafkaProducerFactory<>(config);
+    }
+
+    @Bean("protoBufMessageKafkaTemplateWithApicurio")
+    public KafkaTemplate<String, ProtoBufRecord> protoBufMessageKafkaTemplateWithApicurio(
+            ProducerFactory<String, ProtoBufRecord> protoBufMessageProducerFactoryWithApicurio){
+        KafkaTemplate<String, ProtoBufRecord> kafkaTemplate = new KafkaTemplate<>(protoBufMessageProducerFactoryWithApicurio);
+        return kafkaTemplate;
+    }
+
 }

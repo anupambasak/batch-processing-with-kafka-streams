@@ -9,7 +9,9 @@ services:
               properties:
                 bootstrap.servers: "kafka:29092"
               schema-registry:
-                url: "http://schema-registry:8081"
+                type: confluent
+                url: "http://apicurio-registry:8080/apis/ccompat/v7"   # Apicurio Schema Registry with confluentic registry compatability
+                # url: "http://schema-registry:8081"  # Confluentic Schema Registry
     ports:
       - 8082:8080
 #  schema-registry:

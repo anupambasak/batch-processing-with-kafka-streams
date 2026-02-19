@@ -36,7 +36,7 @@ dependencies {
     implementation project(":common-dtos")
 //    implementation "io.confluent:kafka-streams-protobuf-serde:7.9.5"
     implementation "io.confluent:kafka-streams-protobuf-serde:8.1.1"
-//    implementation 'io.apicurio:apicurio-registry-protobuf-serde-kafka:3.1.6'
+    implementation 'io.apicurio:apicurio-registry-protobuf-serde-kafka:3.1.7'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-kafka-test'
